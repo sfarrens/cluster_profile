@@ -19,8 +19,8 @@ import argparse
 #
 def get_opts():
 
-    col_help = ('Set column numbers for member properties: ID, RA, DEC, Z' + \
-                '[Default 3 4 5 6]')
+    col_help = ('Set column numbers for member properties: C_ID, G_ID, G_RA, G_DEC, G_Z' + \
+                '[Default 1 4 5 6 7]')
 
     plot_help = ('Produce plots. Available options:' +
                  '\n radec -- plot RA/Dec distribution of cluster members' +
@@ -38,7 +38,7 @@ def get_opts():
     parser.add_argument('-r', '--radial', action = 'store_true',
                         dest = 'radial', help = 'Input file coordinates are radial.')
     
-    parser.add_argument('-c', '--cols', dest = 'cols', default = range(4, 8),
+    parser.add_argument('-c', '--cols', dest = 'cols', default = [1] + range(4, 8),
                         nargs = '+', type = int, help = col_help)
 
     parser.add_argument('--id', dest = 'cluster_id', help = 'Cluster ID.')
@@ -60,6 +60,15 @@ def get_opts():
 
     parser.add_argument('--cl', action = 'store_true', dest = 'confidence',
                         help = 'Show results with confidence limits.')
+
+    parser.add_argument('--log', action = 'store_true', dest = 'log',
+                        help = 'Write profile data to an output log.')
+
+    parser.add_argument('--model', default = 'nfw', dest = 'model',
+                        help = 'Profile model (nfw or beta). Default (model = nfw)')
+
+    parser.add_argument('--beta', default = 1.0, dest = 'beta', type = float,
+                        help = 'Beta model coefficient. Default (beta = 1.0)')
     
     parser.add_argument('--plot', default = ['profile'], nargs = '+', 
                         dest = 'plot', help = plot_help)
@@ -87,6 +96,6 @@ def check_opts(parser):
         parser.error('argument --centre: takes a maximum of two values.')        
         
     if 'all' in opts.plot:
-        opts.plot.extend(['radec', 'xy', 'kde', 'profile'])
+        opts.plot.extend(['zhist', 'radec', 'xy', 'kde', 'profile'])
 
     return opts

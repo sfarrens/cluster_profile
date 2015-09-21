@@ -70,11 +70,17 @@ def main():
         opts.bg = 10.0
         bg_fit = True
         
-    p_data = cluster_profile.nfw_best_fit(opts, np.array(data.new_r.loc[index]), opts.rs,
-                                          100, opts.bg, bg_fit)
+    p_data = cluster_profile.best_fit(opts, np.array(data.new_r.loc[index]), opts.rs,
+                                      100, opts.bg, bg_fit)
+
+    h_line()
+    
+    if opts.log:
+        cluster_io.write_p_data(opts, p_data)
 
     # Make plots
-    h_line()
+    if 'zhist' in opts.plot:
+        cluster_plot.plot_zhist(opts, data)
     if 'radec' in opts.plot:
         cluster_plot.plot_radec(opts, data)
     if 'xy' in opts.plot:

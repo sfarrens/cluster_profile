@@ -13,6 +13,7 @@
 
 import numpy as np
 import pandas as pd
+from time import strftime
 
 ##
 #  Read ascii file and return pandas
@@ -25,7 +26,7 @@ import pandas as pd
 def read_ascii(opts):
 
     data = np.genfromtxt(opts.input_file, unpack = True,
-                         dtype = 'S')[np.array(opts.cols) - 1]
+                         dtype = 'S', usecols = (np.array(opts.cols) - 1))
 
     if opts.cluster_id:
         print ' * Cluster ID = ', opts.cluster_id
@@ -43,4 +44,35 @@ def read_ascii(opts):
                             'dec' : np.array(data[2], dtype = 'float64'),
                             'z' : np.array(data[3], dtype = 'float64')})
 
+##
+#  Write ascii file with profile data.
+#
+#  @param[in] opts: List of code options.
+#  @param[in] p_data: Profile data.
+#
+def write_p_data(opts, p_data):
 
+    output_file = opts.input_file + '.log_data'
+
+    header = 'Log output file for cluster.py: ' + strftime('%c') + '\n' + \
+      'Input File: ' + opts.input_file + '\n' + \
+      'Model: ' + opts.model + '\n' + \
+      'Initial Scale Radius [Mpc]: ' + str(opts.rs) + '\n' + \
+      'Initial Background [Mpc^-2]: ' + str(opts.bg) + '\n' + \
+      'Cluster Size [Mpc]: ' + str(opts.size) + '\n' + \
+      'Best fit parameter values. [Scale Radius, Background]'
+
+    np.savetxt(output_file, np.array([p_data[0],]), header = header)
+
+    f_handle = file(output_file, 'a')
+
+    np.savetxt(f_handle, np.array([p_data[3],]),
+               header = 'Chi-Squared value. [Goodness of fit, Probability]')
+    np.savetxt(f_handle, np.array(p_data[1]).T,
+               header = 'Density points. [Radius, Density, Density Error]')
+    np.savetxt(f_handle, np.array(p_data[2]).T,
+               header = 'Profile fit. [Radius, Density]')
+
+    f_handle.close()
+
+    print ' Outputting log data to: ' + output_file

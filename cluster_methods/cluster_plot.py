@@ -14,6 +14,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 ##
+#  Function that plots a histogram of
+#  the cluster member redshifts.
+#
+#  @param[in] opts: List of arguments.
+#  @param[in] data: Cluster DataFrame.
+#
+def plot_zhist(opts, data):
+
+    plt.figure()
+
+    plt.xlim(data.z.min(), data.z.max())
+
+    plt.hist(data.z, bins = 50, histtype = 'step',
+             color = 'b', label = 'Members')
+
+    plt.xlabel('z')
+    plt.ylabel('N(z)')
+    plt.title('Cluster Member Redshifts')
+    plt.legend(fontsize = 10)
+
+    output_file = opts.input_file + '.zhist.pdf'
+    plt.savefig(output_file)
+    print ' z hist plot saved to:', output_file  
+
+    plt.close()
+
+##
 #  Function that plots ra and dec
 #  distribution of cluster members.
 #
@@ -171,9 +198,9 @@ def plot_profile(opts, p_data):
     plt.text(0.25 * plt.xlim()[1], 0.6 * plt.ylim()[1],
              r'$\chi^2 =$ %.3f' % p_data[3][0])
         
-    plt.title('Projected NFW Best-Fit')
+    plt.title('Projected Best-Fit Profile')
 
-    output_file = opts.input_file + '.profile.pdf'
+    output_file = opts.input_file + '.' + opts.model + '.profile.pdf'
     plt.savefig(output_file)
     print ' Profile plot saved to:', output_file  
     

@@ -11,10 +11,12 @@
 
 import warnings
 import numpy as np
+from functools import partial
 from scipy.stats import chi2, chisquare, ks_2samp, anderson_ksamp
 from scipy.optimize import minimize, brute
 from functions.stats import chi2_gof
 from halo_methods.nfw import *
+from halo_methods.beta import *
 from biviano_py.biweight import bwt_ave
 
 warnings.simplefilter('ignore')
@@ -35,25 +37,25 @@ warnings.simplefilter('ignore')
 #
 def get_points(R_proj, num_points, weights):
         
-    rd = []
-    dp = []
-    edp = []
+    radial_pt = []
+    density_pt = []
+    density_pt_err = []
 
     for i in range(len(R_proj) / num_points - 1): 
         r_biweight = bwt_ave(R_proj[num_points * i:num_points * \
                                     (i + 1)])
-        rd.append(r_biweight[0][0])
+        radial_pt.append(r_biweight[0][0])
         if i == 0:
             r1 = 0.
         if i > 0:
             r1 = r2
         r2 = R_proj[num_points * (i + 1)]
         weight = np.sum(weights[num_points * i:num_points * (i + 1)])
-        dp.append(weight / (np.pi * (r2 ** 2 - r1 ** 2)))
-        edp.append(np.sqrt(num_points) / num_points * weight / \
+        density_pt.append(weight / (np.pi * (r2 ** 2 - r1 ** 2)))
+        density_pt_err.append(np.sqrt(num_points) / num_points * weight / \
                    (np.pi * (r2 ** 2 - r1 ** 2)))
 
-    return np.array(rd), np.array(dp), np.array(edp)
+    return np.array(radial_pt), np.array(density_pt), np.array(density_pt_err)
 
 ##
 #  Get confidence limits for best-fit scale 
@@ -67,7 +69,7 @@ def get_points(R_proj, num_points, weights):
 #
 #  @return Lower and upper confidence limits.
 #
-def confidence(r_scale, bg_density, R_proj, grid, dof):
+def confidence(opts, r_scale, bg_density, R_proj, grid, dof):
     
     def get_range(value, grid):
         a = tuple(10.0 ** (np.log10(value) + np.array([-grid / 2, grid / 2]) * 1.4 / grid))
@@ -76,7 +78,11 @@ def confidence(r_scale, bg_density, R_proj, grid, dof):
 
     ranges = (get_range(r_scale, grid), get_range(bg_density, grid))
 
-    res = brute(nfw_proj_maxlik_bg, ranges, args = (R_proj, ), full_output = True)
+    if opts.model == 'beta':
+        res = brute(bm_proj_maxlik_bg, ranges, args = (R_proj, opts.beta, ), full_output = True)
+
+    else:
+        res = brute(nfw_proj_maxlik_bg, ranges, args = (R_proj, ), full_output = True)
 
     x, y = np.array(res[2]), np.array(res[3]).flatten()
     x = x.reshape(x.shape[0], x.shape[1] * x.shape[2]).T
@@ -87,11 +93,10 @@ def confidence(r_scale, bg_density, R_proj, grid, dof):
     return np.min(limits), np.max(limits)
 
 ##
-#  Minimisation of projected NFW with background
-#  density using adaptive grid search.
+#  Minimisation of profile with background density.
 #
-#  Adapated from profmaxliknfwp.pro IDL script by
-#  A. Biviano.
+#  Adapated from profmaxliknfwp.pro and 
+#  profmaxlikbetamodel.pro IDL scripts by A. Biviano.
 #
 #  @param[in] opts: List of code options.
 #  @param[in] R_proj: Projected radius.
@@ -106,7 +111,7 @@ def confidence(r_scale, bg_density, R_proj, grid, dof):
 #  projected density points with errors, fit to data and
 #  chi-squared test results.
 #
-def nfw_best_fit(opts, R_proj, r_scale_ini, grid, bg_density_ini = 0.0, fit_bg = True,
+def best_fit(opts, R_proj, r_scale_ini, grid, bg_density_ini = 0.0, fit_bg = True,
                    fpb = 1, weights = None):
 
     if fit_bg:
@@ -133,17 +138,35 @@ def nfw_best_fit(opts, R_proj, r_scale_ini, grid, bg_density_ini = 0.0, fit_bg =
         bg_bounds = (bg_density_ini, bg_density_ini)
     else:
         bg_bounds = (0.001, None)
-        
-    r_scale_best, bg_density_best = minimize(nfw_proj_maxlik_bg, [r_scale_ini, bg_density_ini],
-                                             args = (R_proj, ), method = 'SLSQP',
-                                             options={'disp': False},
-                                             bounds = ((0.001, None), bg_bounds)).x
-    
-    # Get fit to NFW      
+
+    # Get fit to profile      
     x_fit = np.arange(0.001, 5.0, 0.005)
-    y_fit = nfw_num_density(R_proj, r_scale_best, bg_density_best) * \
-      np.array(map(nfw_proj_sd, (x_fit / r_scale_best))) + \
-      bg_density_best * np.sum(weights) / len(R_proj)
+
+    if opts.model == 'beta':
+
+        print ' Using beta model. [Beta = ' + str(opts.beta) + ']'
+        
+        r_scale_best, bg_density_best = minimize(bm_proj_maxlik_bg, [r_scale_ini, bg_density_ini],
+                                                 args = (R_proj, opts.beta, ), method = 'SLSQP',
+                                                 options={'disp': False},
+                                                 bounds = ((0.001, None), bg_bounds)).x
+    
+        y_fit = bm_num_density(R_proj, r_scale_best, bg_density_best, opts.beta) * \
+          np.array(map(partial(bm_proj_sd, alpha = opts.beta), (x_fit / r_scale_best))) + \
+          bg_density_best * np.sum(weights) / len(R_proj)
+
+    else:
+
+        print ' Using NFW profile.'
+          
+        r_scale_best, bg_density_best = minimize(nfw_proj_maxlik_bg, [r_scale_ini, bg_density_ini],
+                                                 args = (R_proj, ), method = 'SLSQP',
+                                                 options={'disp': False},
+                                                 bounds = ((0.001, None), bg_bounds)).x
+
+        y_fit = nfw_num_density(R_proj, r_scale_best, bg_density_best) * \
+          np.array(map(nfw_proj_sd, (x_fit / r_scale_best))) + \
+          bg_density_best * np.sum(weights) / len(R_proj)
 
     # Evaluate chi^2
     if fit_bg:
@@ -151,7 +174,7 @@ def nfw_best_fit(opts, R_proj, r_scale_ini, grid, bg_density_ini = 0.0, fit_bg =
     else:
         npfree = 1
         
-    chi2_param =  chi2_gof(np.interp(rd, x_fit, y_fit), dp, edp, npfree)
+    chi2_param = chi2_gof(np.interp(rd, x_fit, y_fit), dp, edp, npfree)
 
     # Evaluate K-S test
     ks_param = ks_2samp(np.interp(rd, x_fit, y_fit), dp)
@@ -161,7 +184,7 @@ def nfw_best_fit(opts, R_proj, r_scale_ini, grid, bg_density_ini = 0.0, fit_bg =
 
     if opts.confidence:
         # Evaluate confidence intervals for r_s
-        cf_limits = confidence(r_scale_best, bg_density_best, R_proj, grid, npfree)
+        cf_limits = confidence(opts, r_scale_best, bg_density_best, R_proj, grid, npfree)
 
     # Print results 
     print ''
