@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /Users/Rowen/Documents/Library/anaconda/bin/python
 
 ## @file cluster.py
 #
@@ -35,17 +35,15 @@ def main():
         # Get global properties
         cluster = cluster_props.Global(data)
     
-    # Assign centre
-    if len(opts.centre) == 1:
-        if opts.centre[0] == 'kde':
-            centre, kde_data = cluster_centre.kde_centre(data)
-        elif opts.centre[0] == 'median':
-            centre = np.zeros(2)
-    else:
-        pos = np.array(opts.centre, dtype = 'float')
-        centre = cluster_props.xy_pos(pos, cluster.m_centre)
-
-    if not opts.radial:
+        # Assign centre
+        if len(opts.centre) == 1:
+            if opts.centre[0] == 'kde':
+                centre, kde_data = cluster_centre.kde_centre(data)
+            elif opts.centre[0] == 'median':
+                centre = np.zeros(2)
+        else:
+            pos = np.array(opts.centre, dtype = 'float')
+            centre = cluster_props.xy_pos(pos, cluster.m_centre)
         
         # Add updated R
         data = cluster_props.new_r(data, centre)

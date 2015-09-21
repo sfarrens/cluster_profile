@@ -11,6 +11,7 @@
 #
 
 import argparse
+import numpy as np
 
 ##
 #  Function to read in code arguments.
@@ -19,8 +20,8 @@ import argparse
 #
 def get_opts():
 
-    col_help = ('Set column numbers for member properties: C_ID, G_ID, G_RA, G_DEC, G_Z' + \
-                '[Default 1 4 5 6 7]')
+    col_help = ('Set column numbers for member properties: G_ID, G_RA, G_DEC, G_Z' + \
+                ' [Default 1 2 3 4]')
 
     plot_help = ('Produce plots. Available options:' +
                  '\n radec -- plot RA/Dec distribution of cluster members' +
@@ -38,10 +39,13 @@ def get_opts():
     parser.add_argument('-r', '--radial', action = 'store_true',
                         dest = 'radial', help = 'Input file coordinates are radial.')
     
-    parser.add_argument('-c', '--cols', dest = 'cols', default = [1] + range(4, 8),
+    parser.add_argument('-c', '--cols', dest = 'cols', default = np.arange(1, 5),
                         nargs = '+', type = int, help = col_help)
 
     parser.add_argument('--id', dest = 'cluster_id', help = 'Cluster ID.')
+
+    parser.add_argument('--id_col', dest = 'cluster_id_col', type = int, default = 0,
+                        help = 'Cluster ID column number.')
 
     parser.add_argument('--centre', dest = 'centre', default = ['kde'], nargs = '+',
                         help = 'Cluster centre. Default (centre = \'kde\')')
@@ -56,7 +60,7 @@ def get_opts():
                         help = 'Cluster signa-to-noise ratio.')
 
     parser.add_argument('--bg', dest = 'bg', type = float,
-                        help = 'Fixed number of background objects per Mpc.')
+                        help = 'Fixed number of background objects per Mpc^2.')
 
     parser.add_argument('--cl', action = 'store_true', dest = 'confidence',
                         help = 'Show results with confidence limits.')

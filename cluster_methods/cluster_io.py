@@ -25,9 +25,25 @@ from time import strftime
 #
 def read_ascii(opts):
 
+    # If no column numbers have been specified in radial mode
+    # then redefine the default columns to [1 2].
+    if opts.radial and np.all(opts.cols == np.arange(1, 5)):
+        opts.cols = np.arange(1, 3)
+
+    # If a cluster ID is specified then add the appropriate column
+    # number.
+    if opts.cluster_id:
+        if opts.cluster_id_col > 0:
+            opts.cols = np.hstack([opts.cluster_id_col, opts.cols])
+        else:
+            opts.cols = np.hstack([opts.cols, [max(opts.cols) + 1]])
+
+    # Read the only the specified columns from the input file.
     data = np.genfromtxt(opts.input_file, unpack = True,
                          dtype = 'S', usecols = (np.array(opts.cols) - 1))
 
+    # If a cluster ID is specified then save only the corresponding
+    # cluster members.
     if opts.cluster_id:
         print ' * Cluster ID = ', opts.cluster_id
         data = data[1::, (data[0] == opts.cluster_id)]
