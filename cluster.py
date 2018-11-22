@@ -24,8 +24,6 @@ def main():
     # Get code arguments
     opts = cluster_opts.get_opts()
 
-    print 'radial', opts.radial
-
     # Read input file
     h_line()
     data = cluster_io.read_ascii(opts)
