@@ -1,4 +1,5 @@
-#! /Users/Rowen/Documents/Library/anaconda/bin/python
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
 
 ## @file cluster.py
 #
@@ -6,7 +7,7 @@
 #
 #  Script for analysing cluster
 #  properties.
-#  
+#
 #  @author Samuel Farrens
 #  @version 1.0
 #  @date 2015
@@ -23,18 +24,20 @@ def main():
     # Get code arguments
     opts = cluster_opts.get_opts()
 
+    print 'radial', opts.radial
+
     # Read input file
     h_line()
     data = cluster_io.read_ascii(opts)
 
     if not opts.radial:
-        
+
         # Add X Y data
         data = cluster_props.xy_centre(data, H0 = opts.H0)
 
         # Get global properties
         cluster = cluster_props.Global(data)
-    
+
         # Assign centre
         if len(opts.centre) == 1:
             if opts.centre[0] == 'kde':
@@ -44,7 +47,7 @@ def main():
         else:
             pos = np.array(opts.centre, dtype = 'float')
             centre = cluster_props.xy_pos(pos, cluster.m_centre)
-        
+
         # Add updated R
         data = cluster_props.new_r(data, centre)
 
@@ -61,18 +64,18 @@ def main():
 
     # Get cluster profile data
     h_line()
-    
+
     if opts.bg:
         bg_fit = False
     else:
         opts.bg = 10.0
         bg_fit = True
-        
+
     p_data = cluster_profile.best_fit(opts, np.array(data.new_r.loc[index]), opts.rs,
                                       100, opts.bg, bg_fit)
 
     h_line()
-    
+
     if opts.log:
         cluster_io.write_p_data(opts, p_data)
 
@@ -88,6 +91,6 @@ def main():
     if 'profile' in opts.plot:
         cluster_plot.plot_profile(opts, p_data)
     h_line()
-        
+
 if __name__ == "__main__":
     main()
